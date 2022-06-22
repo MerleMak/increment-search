@@ -6,23 +6,49 @@ searchfield.addEventListener("input", (event) => {
   const searchQuery = event.target.value;
   countrylist.classList.remove("hidden");
   countrylist.innerHTML = "";
-  fetchCountries(searchQuery)
-    .then((data) => {
-      const matchingCountries = data;
+  const xhr = new XMLHttpRequest();
+  xhr.open("GET", `https://spicedworld.herokuapp.com/?q=${searchQuery}`);
+  xhr.send();
 
-      matchingCountries.slice(0, 4).forEach((country) => {
-        const newCountry = countryComponent({ country });
-        countrylist.appendChild(newCountry);
-      });
+  xhr.addEventListener("readystatechange", () => {
+    if (xhr.readyState != XMLHttpRequest.DONE) {
+      return;
+    }
+    let status;
+    try {
+      status = xhr.status;
+    } catch (error) {
+      console.error(error);
+      return;
+    }
+    if (status !== 200) {
+      console.error(`Error: HTTP status code ${status}.`);
+      return;
+    }
 
-      if (matchingCountries.length === 0) {
-        const noResult = document.createElement("li");
-        noResult.textContent = "no results";
-        noResult.classList.add("no-result");
-        countrylist.appendChild(noResult);
-      }
-    })
-    .catch((error) => console.error(error));
+    const response = xhr.responseText;
+    let data;
+    try {
+      data = JSON.parse(response);
+    } catch (error) {
+      console.error(error);
+      return;
+    }
+
+    const matchingCountries = data;
+
+    matchingCountries.slice(0, 4).forEach((country) => {
+      const newCountry = countryComponent({ country });
+      countrylist.appendChild(newCountry);
+    });
+
+    if (matchingCountries.length === 0) {
+      const noResult = document.createElement("li");
+      noResult.textContent = "no results";
+      noResult.classList.add("no-result");
+      countrylist.appendChild(noResult);
+    }
+  });
 });
 
 searchfield.addEventListener("click", (event) => {
@@ -79,41 +105,4 @@ function buttonComponent({ yourButtonTextHere, onClick, onKeyDown }) {
   countryButton.addEventListener("click", onClick);
   countryButton.addEventListener("keydown", onKeyDown);
   return countryButton;
-}
-
-function fetchCountries(query) {
-  const request = new Promise((resolve, reject) => {
-    const xhr = new XMLHttpRequest();
-    xhr.open("GET", `https://spicedworld.herokuapp.com/?q=${query}`);
-    xhr.send();
-
-    xhr.addEventListener("readystatechange", () => {
-      if (xhr.readyState != XMLHttpRequest.DONE) {
-        return;
-      }
-      let status;
-      try {
-        status = xhr.status;
-      } catch (error) {
-        reject(error);
-        return;
-      }
-      if (status !== 200) {
-        reject(`Error: HTTP status code ${status}.`);
-        return;
-      }
-
-      const response = xhr.responseText;
-      let data;
-      try {
-        data = JSON.parse(response);
-      } catch (error) {
-        reject(error);
-        return;
-      }
-
-      resolve(data);
-    });
-  });
-  return request;
 }
