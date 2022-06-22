@@ -6,21 +6,23 @@ searchfield.addEventListener("input", (event) => {
   const searchQuery = event.target.value;
   countrylist.classList.remove("hidden");
   countrylist.innerHTML = "";
-  fetchCountries(searchQuery).then((data) => {
-    const matchingCountries = data;
+  fetchCountries(searchQuery)
+    .then((data) => {
+      const matchingCountries = data;
 
-    matchingCountries.slice(0, 4).forEach((country) => {
-      const newCountry = countryComponent({ country });
-      countrylist.appendChild(newCountry);
-    });
+      matchingCountries.slice(0, 4).forEach((country) => {
+        const newCountry = countryComponent({ country });
+        countrylist.appendChild(newCountry);
+      });
 
-    if (matchingCountries.length === 0) {
-      const noResult = document.createElement("li");
-      noResult.textContent = "no results";
-      noResult.classList.add("no-result");
-      countrylist.appendChild(noResult);
-    }
-  });
+      if (matchingCountries.length === 0) {
+        const noResult = document.createElement("li");
+        noResult.textContent = "no results";
+        noResult.classList.add("no-result");
+        countrylist.appendChild(noResult);
+      }
+    })
+    .catch((error) => console.error(error));
 });
 
 searchfield.addEventListener("click", (event) => {
@@ -80,7 +82,38 @@ function buttonComponent({ yourButtonTextHere, onClick, onKeyDown }) {
 }
 
 function fetchCountries(query) {
-  const result = fetch(`https://spicedworld.herokuapp.com/?q=${query}`);
-  const data = result.then((res) => res.json());
-  return data;
+  const request = new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("GET", `https://spicedworld.herokuapp.com/?q=${query}`);
+    xhr.send();
+
+    xhr.addEventListener("readystatechange", () => {
+      if (xhr.readyState != XMLHttpRequest.DONE) {
+        return;
+      }
+      let status;
+      try {
+        status = xhr.status;
+      } catch (error) {
+        reject(error);
+        return;
+      }
+      if (status !== 200) {
+        reject(`Error: HTTP status code ${status}.`);
+        return;
+      }
+
+      const response = xhr.responseText;
+      let data;
+      try {
+        data = JSON.parse(response);
+      } catch (error) {
+        reject(error);
+        return;
+      }
+
+      resolve(data);
+    });
+  });
+  return request;
 }
